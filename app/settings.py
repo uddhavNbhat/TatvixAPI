@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     ALLOWED_ORIGIN: str
     MONGODB_URI:str
+    GOOGLE_API_KEY:str
+    MCP_SERVER: str
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env") #Read your .env file
 
 # Instantiate settings so that you can import the instance directly

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from app.routes import authenticate,chat
 from fastapi.middleware.cors import CORSMiddleware
 from app.settings import settings
+from langgraph.checkpoint.memory import InMemorySaver
 
 origins = [
     settings.ALLOWED_ORIGIN,
@@ -15,6 +16,7 @@ async def lifespan(app: FastAPI):
     app.state.sqlite_config = get_sqlite_config() #This will initialize the database connection string.
     app.state.mongo_config = get_mongo_config()
     app.state.weaviate_client = get_weaviate_client()
+    app.state.checkpointer = InMemorySaver()
     yield
     app.state.mongo_config.disconnect() #Free mongo db connection string object.
     print("Server Shutting down...")

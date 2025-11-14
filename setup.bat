@@ -89,7 +89,7 @@ goto MENU
 
 :STOP_WEAVIATE
 echo Stopping Weaviate + Transformers...
-cd Transformer_Inference_API
+cd Gemma_Inference_API
 docker compose down
 cd ..
 pause

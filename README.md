@@ -33,6 +33,7 @@ ALLOWED_ORIGIN="http://localhost:5173"
 MONGODB_URI="mongodb://localhost:27017/TatvixDb"
 WEAVIATE_SERVER="http://localhost:8081/vectors"
 GOOGLE_API_KEY="your_google_api_key_here"
+MCP_SERVER="http://localhost:5050/mcp"
 ```
 
 ### Notes:
@@ -58,6 +59,19 @@ The embedding model is not bundled with the repository and must be downloaded ma
 Tatvix uses the Gemma 300M Embedding Model (Edge device model) for generating vector embeddings.
 
 Download & Place the Model
+Run the below piece of code in python REPL/ or a simple script file to download gemma 300m into the system.
+Make sure you run it inside the Gemma_Inference_API folder.
+
+```
+from huggingface_hub import snapshot_download
+
+snapshot_download(
+    repo_id="google/embeddinggemma-300M",
+    local_dir="./models/gemma-300m",
+    local_dir_use_symlinks=False
+)
+
+```
 
 Download the Gemma 300M Embedding Model from the official Google/Model provider source.
 
