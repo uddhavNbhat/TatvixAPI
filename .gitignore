@@ -1,0 +1,5 @@
+.venv
+.env
+TatvixDB.db
+/**/__pycache__
+/Transformer_Inference_API/models
