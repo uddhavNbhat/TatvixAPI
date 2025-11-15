@@ -1,68 +1,67 @@
-# **Tatvix – Legal Assistant API**
+🚀 Tatvix – Legal Assistant API
 
-Your personal AI-powered legal agent that helps you understand law in the simplest way possible.
+Your personal AI-powered legal agent designed to help you understand the law in the simplest and most intuitive way.
 
-This project is currently in the **local development phase**, and you can run it entirely on your system.
+This project is currently in local development and runs entirely on your machine.
 
----
-
-## **Getting Started**
-
-### **1. Clone the Repository**
-
-Clone the project to your local machine:
-
-```bash
+📦 Setup & Installation
+1. Clone the Repository
 git clone <public_repo_link>
-```
 
-(Not yet public)
 
----
+(Repository not public yet)
 
-## 🔧 **Environment Setup**
+⚙️ Environment Setup
 
-Before running the application, you must create a `.env` file in the project root with the following environment variables:
+Create a .env file in the root directory with the following variables:
 
-```env
 SQLITE_DB_NAME="TatvixDB.db"
-JWT_SECRET_KEY="your_secret_key_here"  # Generate from https://jwtsecrets.com
-ENC_ALGORITHM="HS256"  # Use RS256 in production (asymmetric key-pair signing)
+JWT_SECRET_KEY="your_secret_key_here"
+ENC_ALGORITHM="HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 ALLOWED_ORIGIN="http://localhost:5173"
 MONGODB_URI="mongodb://localhost:27017/TatvixDb"
 WEAVIATE_SERVER="http://localhost:8081/vectors"
 GOOGLE_API_KEY="your_google_api_key_here"
 MCP_SERVER="http://localhost:5050/mcp"
-```
 
-### Notes:
+Important Notes
 
-* Generate a secure JWT secret key using **jwtsecrets.com**.
-* Retrieve a Google API key from **Google AI Studio**.
-* The LLM support currently uses **Gemini 2.5 Flash / Pro**.
+Generate a strong JWT secret via: https://jwtsecrets.com
 
----
+Google API key → create in Google AI Studio
 
-## **Running the System**
+Supported LLMs → Gemini 2.5 Flash / Pro
 
-After creating your .env file, ensure the following steps are completed before starting the system.
+Uses:
 
-1. Start Docker Desktop (Windows)
+SQLite (local user/session storage)
 
-The setup requires Docker to run the Weaviate + Transformer inference containers.
+MongoDB (document store)
 
-2. Install the Embedding Model Locally
+Weaviate (vector DB)
 
-The embedding model is not bundled with the repository and must be downloaded manually.
+Local inference server (Gemma 300M embeddings)
 
-Tatvix uses the Gemma 300M Embedding Model (Edge device model) for generating vector embeddings.
+🐳 Docker & Model Setup
 
-Download & Place the Model
-Run the below piece of code in python REPL/ or a simple script file to download gemma 300m into the system.
-Make sure you run it inside the Gemma_Inference_API folder.
+Before running the system:
 
-```
+1. Start Docker Desktop
+
+Weaviate and the embedding inference container require Docker to be running.
+
+2. Install the Embedding Model (Gemma 300M)
+
+Tatvix uses Gemma 300M Embedding Model, optimized for edge devices.
+
+Inside the folder:
+
+TatvIX_API/Transformer_Inference_API/
+
+
+Run this Python snippet to download the model:
+
 from huggingface_hub import snapshot_download
 
 snapshot_download(
@@ -71,90 +70,81 @@ snapshot_download(
     local_dir_use_symlinks=False
 )
 
-```
 
-Download the Gemma 300M Embedding Model from the official Google/Model provider source.
-
-Create the following directory (if it doesn’t already exist):
+Your final directory structure must look like:
 
 TatvIX_API/
 └── Transformer_Inference_API/
     └── models/
+        └── gemma-300m/   <-- model files here
 
 
-Place the downloaded model inside the models folder.
-
-The expected path becomes:
-
-Transformer_Inference_API/models/<gemma-300m-model-files-here>
-
-
-This folder is mounted by the inference Docker container during startup, ensuring the embedding service works correctly.
+This folder is mounted by the inference Docker container at runtime.
 
 3. Run the Setup Script
 
-Once Docker Desktop is running and the model is installed:
+After Docker is running and the model is installed:
 
 C:\<path_to_project>\TatvIX_API\setup.bat
 
 
-Follow the on-screen instructions provided by the script.
+Follow the on-screen instructions.
 
----
+🗃️ Setup Server — Document Ingestion Layer
 
-## **Setup Server (Document Ingestion Layer)**
+The setup server handles:
 
-The **setup server** does not include a UI.
-You can upload documents (PDFs, text files, etc.) to prepare the system. It handles:
+✔ Document upload
+✔ MongoDB storage
+✔ Chunking & embedding generation
+✔ Pushing embeddings into Weaviate
 
-* Spinning up a Weaviate database
-* Storing uploaded documents in MongoDB
-* Generating embeddings
-* Populating the vector database with embeddings
+⚠️ Note:
 
-> **Note:** Avoid extremely large documents as embedding generation depends heavily on your system resources.
+Avoid huge files unless your system has enough RAM to perform embedding inference.
 
----
+🔌 Setup API – Endpoints
 
-## **Setup API Endpoints**
+Use Postman to interact with ingestion endpoints.
 
-Use **Postman** to interact with these endpoints.
-
-### **1. Upload Documents to MongoDB**
-
-```
+1. Upload Documents → MongoDB
 POST http://localhost:5000/populate-mongodb
-Body → form-data:
-file → (list of files)
-```
 
-### **2. Populate Weaviate with Embeddings**
 
-```
+Body → form-data
+
+file: list of files (PDF/text documents)
+
+2. Populate Vector DB (Weaviate)
 POST http://localhost:5000/populate-weaviate
-Body → none (uses documents already stored in MongoDB)
-```
 
-### **3. Drop Weaviate Database**
 
-```
+No body required.
+Uses documents already stored in MongoDB.
+
+3. Drop Weaviate Database
 POST http://localhost:5000/drop-weaviate-db
-```
 
-⚠️ *Use with caution — this resets your vector database.*
 
----
+⚠️ Warning: Deletes all embeddings & vectors.
 
-## **Application Server (Main API)**
+🧠 Application Server (Main API)
 
-The application server exposes user-facing endpoints.
+This server handles:
 
-A UI is under development, but you can test APIs using **Postman**.
+Authentication
 
-To explore the full API documentation, use FastAPI's built-in Swagger UI:
+Chat sessions
 
-```
+Legal agent responses
+
+Retrieval-augmented generation
+
+MCP-based document search
+
+To explore the APIs interactively:
+
 http://localhost:8000/docs
-```
 
----
+
+Powered by FastAPI Swagger UI.
