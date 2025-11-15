@@ -1,16 +1,15 @@
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
-from pdf2image import convert_from_bytes
+import fitz
 from PIL import Image
 from io import BytesIO
 from setupAPI.models import PDFImage, ExtractedText
 import pytesseract
-from pypdf import PdfReader,PdfWriter
 from typing import List
 import re,requests,uuid
 import weaviate.classes.config as wc
 from weaviate import WeaviateClient
 from tqdm import tqdm
+from datetime import datetime, timedelta, timezone
 
 class Utils():
     @staticmethod
@@ -50,35 +49,51 @@ class Utils():
         return re.sub(r"\[/?(DATE|LAW)\]", "", text).strip()
 
 
-    def pdf_to_mongodb(self,data: bytes, filename: str, max_workers=4, chunk_size=50) -> list:
-        """ Convert pdf data into text and store it in monogDB through process_page method """
-        print("[DEBUG] Splitting PDF into chunks...")
-        reader = PdfReader(BytesIO(data))
-        total_pages = len(reader.pages)
+    def pdf_to_mongodb(self, data: bytes, filename: str, max_workers=4, chunk_size=50) -> list:
+        """Convert PDF bytes into page images and upload to MongoDB using PyMuPDF."""
+        print("[DEBUG] Opening PDF with PyMuPDF...")
+        doc = fitz.open(stream=data, filetype="pdf")
+        total_pages = len(doc)
         image_ids = []
 
+        print(f"[DEBUG] Total pages detected: {total_pages}")
+        print("[DEBUG] Splitting into chunks...")
+
+        # Process in chunks
         for start in range(0, total_pages, chunk_size):
-            writer = PdfWriter()
-            for i in range(start, min(start + chunk_size, total_pages)):
-                writer.add_page(reader.pages[i])
+            end = min(start + chunk_size, total_pages)
+            print(f"[DEBUG] Processing pages {start} to {end - 1}")
 
-            chunk_bytes = BytesIO()
-            writer.write(chunk_bytes)
-            chunk_bytes.seek(0)
+            # Convert each page to image (pixmap)
+            pages = []
+            for i in range(start, end):
+                page = doc.load_page(i)
+                pix = page.get_pixmap(dpi=200)   # good quality for OCR
+                img_bytes = pix.tobytes("png")   # raw PNG bytes
+                pages.append((i, img_bytes))
 
-            print(f"[DEBUG] Processing pages {start} to {min(start + chunk_size, total_pages)-1}")
-            imgs = convert_from_bytes(chunk_bytes.read(), fmt="png")
-
+            # Map to _process_page using thread pool
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = [executor.submit(self._process_page, start + i, img, filename) for i, img in enumerate(imgs)]
+                futures = [
+                    executor.submit(
+                        self._process_page,
+                        page_index,
+                        Image.open(BytesIO(img_bytes)),  # convert to PIL Image
+                        filename
+                    )
+                    for page_index, img_bytes in pages
+                ]
+
                 for future in futures:
                     image_ids.append(future.result())
 
+        doc.close()
         return image_ids
     
     def get_data(self) -> List[dict]:
         """ Method to perform a read and retrieve data from MongoDB database for weaviate meta data to reference """
-        text = ExtractedText.objects()
+        one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+        text = ExtractedText.objects(time_stamp__gte=one_hour_ago)
         if not text:
             print("No data found")
         else:
