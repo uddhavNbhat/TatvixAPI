@@ -21,10 +21,6 @@ class SQLiteConfig():
         """ Method to create database and all default tables if not created. """
         SQLModel.metadata.create_all(self.engine)
     
-    def get_session(self, requst:Request):
-        """ Method to get current user session for database """
-        session = Session(self.engine)
-
 class MongoDBConfig():
     def __init__(self):
         connect(host=settings.MONGODB_URI,alias="TatvixDB")

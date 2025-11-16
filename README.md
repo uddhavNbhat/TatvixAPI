@@ -104,6 +104,10 @@ C:\<path_to_project>\TatvIX_API\setup.bat
 
 Follow the on-screen instructions.
 
+### ⚠️ *Note:*
+
+Always run option 1, to start weaviate database, before running any of the other options, it has direct dependency on it.
+
 ---
 
 # 🗃️ **Setup Server — Document Ingestion Layer**
