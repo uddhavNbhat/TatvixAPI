@@ -1,4 +1,3 @@
-
 # 🚀 **Tatvix – Legal Assistant API**
 
 Your personal AI-powered legal agent designed to help you understand the law in the simplest and most intuitive way.
@@ -17,8 +16,8 @@ Before installing or running the system, ensure the following dependencies are i
 
 Tatvix requires:
 
-* **Python 3.10+**
-* **pip package manager** (comes with Python)
+- **Python 3.10+**
+- **pip package manager** (comes with Python)
 
 ### ✔ Check Installation
 
@@ -35,8 +34,8 @@ If not installed, download Python from:
 
 During installation, **make sure to enable:**
 
-✔ *“Add Python to PATH”*
-✔ *“Install pip”*
+✔ _“Add Python to PATH”_
+✔ _“Install pip”_
 
 ---
 
@@ -96,6 +95,7 @@ Install it normally.
    ```
    C:\Program Files\Tesseract-OCR
    ```
+
 2. Copy the folder path
 3. Add it to **System Environment Variables → Path**
 
@@ -107,7 +107,6 @@ tesseract --version
 
 ---
 
-
 # 📦 **Setup & Installation**
 
 ## 1. **Clone the Repository**
@@ -116,7 +115,7 @@ tesseract --version
 git clone <public_repo_link>
 ```
 
-> *(Repository not public yet)*
+> _(Repository not public yet)_
 
 ---
 
@@ -138,15 +137,15 @@ MCP_SERVER="http://localhost:5050/mcp"
 
 ### **Important Notes**
 
-* Generate a strong JWT secret via: [https://jwtsecrets.com](https://jwtsecrets.com)
-* Google API key → create in **Google AI Studio**
-* Supported LLMs → **Gemini 2.5 Flash / Pro**
-* Uses:
+- Generate a strong JWT secret via: [https://jwtsecrets.com](https://jwtsecrets.com)
+- Google API key → create in **Google AI Studio**
+- Supported LLMs → **Gemini 2.5 Flash / Pro**
+- Uses:
 
-  * SQLite (local user/session storage)
-  * MongoDB (document store)
-  * Weaviate (vector DB)
-  * Local inference server (Gemma 300M embeddings)
+  - SQLite (local user/session storage)
+  - MongoDB (document store)
+  - Weaviate (vector DB)
+  - Local inference server (Gemma 300M embeddings)
 
 ---
 
@@ -170,7 +169,7 @@ C:\<path_to_project>\TatvIX_API\setup.bat
 
 Follow the on-screen instructions.
 
-### ⚠️ *Note:*
+### ⚠️ _Note:_
 
 Always run option 1, to start weaviate database, before running any of the other options, it has direct dependency on it.
 
@@ -185,7 +184,7 @@ The setup server handles:
 ✔ Chunking & embedding generation
 ✔ Pushing embeddings into Weaviate
 
-### ⚠️ *Note:*
+### ⚠️ _Note:_
 
 Avoid huge files unless your system has enough RAM to perform embedding inference.
 
@@ -205,7 +204,7 @@ POST http://localhost:5000/populate-mongodb
 
 **Body → form-data**
 
-* `file`: list of files (PDF/text documents)
+- `file`: list of files (PDF/text documents)
 
 ---
 
@@ -234,11 +233,11 @@ POST http://localhost:5000/drop-weaviate-db
 
 This server handles:
 
-* Authentication
-* Chat sessions
-* Legal agent responses
-* Retrieval-augmented generation
-* MCP-based document search
+- Authentication
+- Chat sessions
+- Legal agent responses
+- Retrieval-augmented generation
+- MCP-based document search
 
 To explore the APIs interactively:
 
@@ -247,4 +246,3 @@ http://localhost:8000/docs
 ```
 
 Powered by **FastAPI Swagger UI**.
-
