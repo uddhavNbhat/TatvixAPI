@@ -167,7 +167,7 @@ Tatvix uses **Gemma 300M Embedding Model**, optimized for edge devices.
 Inside the folder:
 
 ```
-TatvIX_API/Transformer_Inference_API/
+TatvIX_API/Gemma_Inference_API/
 ```
 
 Run this Python snippet to download the model:
@@ -186,7 +186,7 @@ Your final directory structure must look like:
 
 ```
 TatvIX_API/
-└── Transformer_Inference_API/
+└── Gemma_Inference_API/
     └── models/
         └── gemma-300m/   <-- model files here
 ```
