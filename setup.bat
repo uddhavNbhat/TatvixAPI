@@ -54,7 +54,9 @@ echo 1. Start Weaviate Database
 echo 2. Start Setup Server
 echo 3. Start Application Server
 echo 4. Stop Weaviate Database
-echo 5. Exit
+echo 5. Stop Setup Server
+echo 6. Stop Application Server
+echo 7. Exit
 echo.
 set /p choice="Enter your choice: "
 
