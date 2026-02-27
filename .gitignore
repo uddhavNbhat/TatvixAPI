@@ -1,0 +1,66 @@
+# ==============================
+# Secrets / sensitive config
+# ==============================
+.env
+.env.*
+*.env
+*.env.*
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+
+# ==============================
+# Python
+# ==============================
+**/.venv/
+**/venv/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# ==============================
+# Databases / local state
+# ==============================
+*.db
+*.sqlite
+*.sqlite3
+TatvixDB.db
+
+# ==============================
+# Node / frontend
+# ==============================
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==============================
+# Project-specific generated data
+# ==============================
+/Gemma_Inference_API/models/
+/Gemma_Inference_API/weaviate_data/
+/file_service_API/storage/
+
+# ==============================
+# OS / editor
+# ==============================
+.DS_Store
+Thumbs.db
+.vscode/.ropeproject/
+
+# ==============================
+# Tests (local temp)
+# ==============================
+/tests/

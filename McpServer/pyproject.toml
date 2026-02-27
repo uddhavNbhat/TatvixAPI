@@ -1,0 +1,11 @@
+[project]
+name = "mcpserver"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=3.0.2",
+    "requests>=2.32.5",
+    "weaviate-client>=4.20.1",
+]

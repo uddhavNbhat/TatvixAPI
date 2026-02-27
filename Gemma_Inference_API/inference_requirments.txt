@@ -1,0 +1,10 @@
+Flask
+python-dotenv
+transformers
+sentence-transformers
+huggingface-hub
+scikit-learn
+scipy
+safetensors
+tokenizers
+numpy
