@@ -107,16 +107,16 @@ async def talk_chat(
                 },
             )
 
-        response = await legal_agent.get_response(
-            message=user_query, session_id=chat_id
-        )
+        response = await legal_agent.invoke(query=user_query, session_id=chat_id)
 
         content = response.get("content", "")
-        if "header" in response.keys():
-            header = response.get("header", "")
+        document_data = response.get("document_data", [])
+        logger.info(f"\nDocument data : {document_data}\n")
+        objective = response.get("objective", "")
+        if objective:
             try:
                 update = session.exec(select(Chat).where(Chat.id == chat_id)).first()
-                update.header = header
+                update.header = objective
                 session.add(update)
                 session.commit()
 
@@ -155,7 +155,7 @@ async def talk_chat(
                 )
 
     except Exception as e:
-        print(e)  # LOG
+        logger.error(f"Error: {e}")  # LOG
         raise HTTPException(
             status_code=500,
             detail={

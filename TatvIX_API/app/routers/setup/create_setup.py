@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Request
 from typing import List, Annotated
 from httpx import AsyncClient
-from weaviate import WeaviateAsyncClient
+from weaviate import WeaviateClient
 from app.config.settings import settings
 from app.utils.security import security
 from app.utils.logger import logger
@@ -95,7 +95,7 @@ async def populate(
 ):
     try:
         # Get global client object
-        client: WeaviateAsyncClient = request.app.state.weaviate_client
+        client: WeaviateClient = request.app.state.weaviate_client
         text_data = await get_data(
             session=session,
             file_data=data

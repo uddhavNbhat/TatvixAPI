@@ -61,7 +61,7 @@ class WeaviateConfig():
                     raise RuntimeError("Failed to connect to Weaviate after multiple retries.") from e
 
 
-    async def create_weaviate_schema(self):
+    def create_weaviate_schema(self):
         """Create a weaviate database collection with a defined schema."""
         try:
             existing = self.client.collections.list_all()
@@ -81,7 +81,7 @@ class WeaviateConfig():
         except Exception as e:
             print(f"Exception Occured : {e}")
             
-    async def close_client(self):
+    def close_client(self):
         """ method to close weaviate client object """
         if self.client is not None:
             self.client.close()

@@ -34,7 +34,7 @@ def document_search(query:str) -> dict:
 
         top_k_response = documents.query.near_vector(
             near_vector=vector,
-            limit=5,
+            limit=3,
             return_metadata=MetadataQuery(distance=True),
         )
 
@@ -70,7 +70,7 @@ def search_engine(query :str) -> SearchResponse:
     except Exception as e:
         return SearchResponse(results=[]) # Make sure Agent workflow does not break if tool call fails.
 
-    items = search_results.get("items")
+    items = search_results.get("items", [])
     content = []
 
     for item in items:

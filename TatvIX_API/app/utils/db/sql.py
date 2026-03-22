@@ -8,8 +8,5 @@ def get_sql_session(request: Request):
     with Session(request.app.state.sqlite_config.engine) as session:
         yield session
 
-def reconstruct_text_to_image(request: Request):
-    pass
-
 #Build session dependency object to inject the appropriate session per user request
 SQLSessionDep = Annotated[Session, Depends(get_sql_session)]

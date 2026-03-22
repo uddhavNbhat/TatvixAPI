@@ -1,26 +1,28 @@
+from typing import ClassVar, Optional, List
 from langchain_ollama import ChatOllama
-from langgraph.graph import StateGraph, START
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
+from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.mongodb import MongoDBSaver
-from typing import Literal, Optional, List
+from langgraph.graph.state import CompiledStateGraph
+from app.internal.agent.utils.nodes.summarize import (
+    should_summarize,
+    summarize_node,
+)
+from app.internal.agent.utils.nodes.converge import (
+    should_build_objective,
+    build_state,
+)
+from app.internal.agent.utils.custom.agent_tools import AgentTools
+from app.internal.agent.utils.states.parent import ParentAgentSchema
+from app.internal.agent.utils.custom.mcp_client import McpClient
+from app.utils.logger import logger
+from app.internal.agent.utils.custom.model_factory import ModelFactory
+from app.internal.agent.sub_agents.executor_agent import ExecutionAgent
+from app.internal.agent.sub_agents.objective_agent import ObjectiveAgent
 import certifi
 import os
-from langgraph.prebuilt import tools_condition
-from app.internal.agent.utils.states import ChatState
-from app.internal.agent.utils.mcp_client import McpClient
-from app.internal.agent.utils.nodes import (
-    trim_tool_output,
-    append_query,
-    chat_node,
-    generate_header,
-    summary_node,
-    tool_node,
-    trim_input_context,
-)
-from app.utils.logger import logger
-from langgraph.graph.state import CompiledStateGraph
-from app.internal.agent.utils.model_factory import ModelFactory
-from typing import ClassVar
 
 # Force Python to use certifi's CA bundle so TLS/HTTPS validation works
 os.environ["SSL_CERT_FILE"] = certifi.where()
@@ -28,34 +30,51 @@ os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
 
 
 class LegalAgent:
-    _cahced_tools: ClassVar[Optional[List]] = (
-        None  # Global class cache for MCP tools only accesible through class.
-    )
+    _cahced_tools: ClassVar[Optional[List]] = None  # Global class cache for MCP tools.
 
     def __init__(self):
-        self.model_family = None
-        self.model_name = None
+        self.retries = None
+        self.llm: ChatGroq | ChatOllama | ChatGoogleGenerativeAI | ChatOpenAI = None
+        self.family = None
+        self.name = None
+        self.tool_caller = None
         self.tools = None
-        self.model = None
-        self.fallback_model = None
-        self.checkpointer: Optional[MongoDBSaver] = None
-        self._graph: Optional[CompiledStateGraph] = None
+        self._checkpointer: MongoDBSaver = None
+        self.objective_agent: CompiledStateGraph = None
+        self.execution_agent: CompiledStateGraph = None
+        self.agent_graph: CompiledStateGraph = None
 
     @classmethod
-    async def init_legal_agent(cls, model_family, model_name, checkpointer):
-        """Method to get mcp tools while creating class instance consistently."""
-        self = cls()
-        if cls._cahced_tools is None:
-            cls._cahced_tools = await self._get_mcp_tools()
-        self.model_family = model_family
-        self.model_name = model_name
-        self.tools = cls._cahced_tools
-        self.model = self._get_llm()
-        self.fallback_model = self._initialize_fallback_model()
-        self.checkpointer = checkpointer
-        # Build graph on intialization
-        self._build_graph()
+    async def init_agent(
+        cls, model_family: str, model_name: str, checkpointer: MongoDBSaver
+    ):
+        """Decoupled async instance variable initializer for class"""
+        self = cls()  # Class object
 
+        async def _populate_agent_attributes(self: LegalAgent):
+            try:
+                self.retries = 3
+                self.family = model_family
+                self.name = model_name
+                self.llm = (
+                    ModelFactory()
+                    .initialize_model(model_family=self.family, model_name=self.name)
+                    .model
+                )
+                if cls._cahced_tools is None:
+                    cls._cahced_tools = await self._get_mcp_tools()
+                self.tool_caller = await AgentTools.init_agent_tools(cls._cahced_tools)
+                self._checkpointer = checkpointer
+                self.objective_agent = ObjectiveAgent(llm=self.llm).agent_graph
+                self.execution_agent = ExecutionAgent(
+                    llm=self.llm, tool_caller=self.tool_caller
+                ).agent_graph
+            except Exception as e:
+                raise e
+
+        await _populate_agent_attributes(self=self)
+        # Build the agent after the required agent attributes are populated.
+        self.agent_graph = self._build_agent()
         return self
 
     async def _get_mcp_tools(self):
@@ -63,137 +82,88 @@ class LegalAgent:
         client = McpClient()
         return await client._init_tools()
 
-    def _get_llm(self):
-        """Method to initialize chat model"""
-        factory = ModelFactory.initialize_model(
-            model_family=self.model_family, model_name=self.model_name
-        )
-        model = factory.model.bind_tools(self.tools)
-        return model
-
-    def _initialize_fallback_model(self):
-        """Method to intialize fallback model"""
-        fallback_model = ChatOllama(model="qwen3:4b").bind_tools(self.tools)
-        return fallback_model
-
-    def _should_summarize(
-        self, state: ChatState
-    ) -> Literal["summary_node", "chat_node"]:
-        """conditional edge to make sure if more than n messages have accumilated, summarize chat history"""
-        user_msg = [
-            m for m in state.get("messages") if isinstance(m, HumanMessage)
-        ]  # Count only the number of pormpts asked by the user.
-        if len(user_msg) > 3:  # Set to 3 for test purposes.
-            return "summary_node"
-        return "trim_input_context"
-
-    def _should_generate_header(
-        self, state: ChatState
-    ) -> Literal["generate_header", "chat_node"]:
-        """conditional edge to generate section header for the UI"""
-        header = state.get("heading", "")
-        if header:
-            return "chat_node"
-        return "generate_header"
-
-    def _build_graph(self):
-        """Create langgraph agent workflow and complie it"""
-        if self._graph is None:
-            try:
-                # Nodes
-                builder = StateGraph(ChatState)
-                builder.add_node("append_query", append_query(self))
-                builder.add_node("tools", tool_node(self))
-                builder.add_node("generate_header", generate_header(self))
-                builder.add_node("trim_input_context", trim_input_context(self))
-                builder.add_node("trim_tool_output", trim_tool_output(self))
-                builder.add_node("summary_node", summary_node(self))
-                builder.add_node("chat_node", chat_node(self))
-
-                builder.add_edge(START, "append_query")
-                builder.add_conditional_edges(
-                    "append_query",
-                    self._should_summarize,
-                    {
-                        "trim_input_context": "trim_input_context",
-                        "summary_node": "summary_node",
-                    },
-                )
-                builder.add_edge("summary_node", "trim_input_context")
-                builder.add_conditional_edges(
-                    "trim_input_context",
-                    self._should_generate_header,
-                    {"chat_node": "chat_node", "generate_header": "generate_header"},
-                )
-                builder.add_edge("generate_header", "chat_node")
-                builder.add_edge("trim_input_context", "chat_node")
-                builder.add_conditional_edges("chat_node", tools_condition)
-                builder.add_edge("tools", "trim_tool_output")
-                builder.add_edge("trim_tool_output", "chat_node")
-
-                if self.checkpointer is None:
-                    raise RuntimeError(
-                        "checkpointer not initialized! Use app.state.legal_agent.checkpointer"
-                    )
-
-                self._graph = builder.compile(checkpointer=self.checkpointer)
-
-            except Exception as e:
-                print(f"Exception -> {e}")  # Log
-                raise e
-
-        return self._graph
-
-    async def get_response(self, message: str, session_id: str):
-        """Get response from the LLM for user question"""
-        if self.checkpointer is None:
-            raise RuntimeError(
-                "No Memory for the agent to go with, make sure checkpointer is set!"
-            )
-
-        config = {"configurable": {"thread_id": session_id}}
-
+    def _build_agent(self) -> CompiledStateGraph:
+        """Builds Legal Agent graph and returns built graph object"""
         try:
-            response = await self._graph.ainvoke({"user_query": message}, config)
-            print(response["messages"])  # LOG
-            data = response.get("messages", "")
-            header = response.get("heading", "")
-            content = None
-            for msg in reversed(data):
-                if isinstance(msg, AIMessage):
-                    content = msg.content
+            if not (
+                self.family
+                and self.name
+                and self.llm
+                and self.execution_agent
+                and self.objective_agent
+            ):
+                raise Exception("Agent initialization Incomplete!")
+            # Builder initialization
+            builder = StateGraph(ParentAgentSchema)
+            # Nodes
+            builder.add_node("build_objective", self.objective_agent)
+            builder.add_node("execution_agent", self.execution_agent)
+            builder.add_node("summarizer_node", summarize_node(self))
+            builder.add_node("state_node", build_state(self))
+            # Edges
+            builder.add_edge(START, "execution_agent")
+            builder.add_conditional_edges(
+                START,
+                should_build_objective(self),
+                {"build_objective": "build_objective", "END": END},
+            )
+            builder.add_edge("build_objective", "state_node")
+            builder.add_edge("execution_agent", "state_node")
+            builder.add_conditional_edges(
+                "state_node",
+                should_summarize(self),
+                {"summarizer_node": "summarizer_node", "END": END},
+            )
+            builder.add_edge("summarizer_node", END)
+            # Compiled State Graph
+            graph = builder.compile(checkpointer=self._checkpointer)
 
-                    if isinstance(content, str):
-                        response_data = {"content": content}
-                        break
-                    elif isinstance(content, list):
-                        # Extract text from the list of content blocks
-                        text_parts = []
-                        for block in content:
-                            if isinstance(block, dict) and block.get("type") == "text":
-                                text_parts.append(block["text"])
-                        response_data = {"content": "\n".join(text_parts)}
-                        break
-
-            if "heading" in response:
-                response_data["header"] = header
-
-            """tool_messages = [
-                m for m in response["messages"]
-                if isinstance(m, ToolMessage)
-            ] #Extract all the tool messages from the messages list from graph state.
-            print(tool_messages)
-            """
+            return graph
         except Exception as e:
-            logger.error(f"Error at get_response: {e}")
             raise e
 
-        return response_data
+    async def invoke(self, session_id: str, query: str):
+        """Method to invoke the compiled agent graph"""
+        try:
+            if not self.agent_graph:
+                raise Exception("Can only Invoke Agent after it is built!")
+
+            config = {"configurable": {"thread_id": session_id}}
+
+            agent_input = {"user_query": query}
+
+            response = await self.agent_graph.ainvoke(config=config, input=agent_input)
+
+            messages = response["messages"]
+            objective = response["objective"]
+            document_data = response["document_output"]
+            content = response["llm_output"]
+
+            if not content:
+                content = messages[-1].content
+                if isinstance(self.llm, ChatGoogleGenerativeAI):
+                    return {"content": content[0]["text"]}
+                return {"content": content}
+
+            if isinstance(content, list) and isinstance(
+                self.llm, ChatGoogleGenerativeAI
+            ):
+                content = response["llm_output"][0]["text"]
+
+            return {
+                "objective": objective,
+                "document_data": document_data,
+                "content": content,
+            }
+
+        except Exception as e:
+            logger.error(f"Error at {LegalAgent.__name__}: {e}")
+            raise e
 
     def clear_chat(self, session_id: str):
         """Clear current session from lang graph checkpointer"""
         try:
-            response = self.checkpointer.delete_thread(session_id)
+            response = self._checkpointer.delete_thread(session_id)
             return response
         except Exception as e:
             raise e

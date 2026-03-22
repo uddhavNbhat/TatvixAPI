@@ -12,16 +12,17 @@ class Gemini:
     """
     Gemini Class that holds all supported gemini models to make use of:
         Supported models:
-            1. gemini-2.5-flash-lite
-            2. gemini-2.5-flash
-            3. gemini-2.5-pro
+            1. gemini-3.1-flash-lite-preview
+            2. gemini-2.5-flash-lite
+            3. gemini-3-flash-preview
+            4. gemini-2.5-flash
     """
     _api_key : str = settings.GOOGLE_API_KEY
     _supported_models : List[str] = [
+        "gemini-3.1-flash-lite-preview",
         "gemini-2.5-flash-lite",
-        "gemini-2.5-flash",
-        "gemini-2.5-pro",
-        "gemma-3-27b-it"
+        "gemini-3-flash-preview",
+        "gemini-2.5-flash"
     ]
     def __init__(self, model_name):
         self.model = self._init_model(model_name=model_name)
