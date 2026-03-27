@@ -142,14 +142,11 @@ async def talk_chat(
         if content:
             human_message = Message(chat_id=chat_id, role="human", content=user_query)
             ai_message = Message(chat_id=chat_id, role="ai", content=content)
+            file_objects = [MessageFiles(file_id=doc.file_id) for doc in document_data]
+            ai_message.files = file_objects
             try:
                 session.add(human_message)
                 session.add(ai_message)
-                for doc in document_data:
-                    upload_document_data = MessageFiles(
-                        file_id=doc.file_id, message_id=ai_message.id
-                    )
-                    session.add(upload_document_data)
                 session.commit()
             except Exception as e:
                 session.rollback()
