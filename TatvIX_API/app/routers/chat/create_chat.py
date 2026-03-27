@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, Body
 from app.utils.security import security
 from typing import Annotated
-from app.models.models import User, Chat, Message
+from app.models.models import User, Chat, Message, MessageFiles
 from app.internal.agent.graph import LegalAgent
 from app.utils.db.sql import SQLSessionDep
 from sqlmodel import select
@@ -145,6 +145,11 @@ async def talk_chat(
             try:
                 session.add(human_message)
                 session.add(ai_message)
+                for doc in document_data:
+                    upload_document_data = MessageFiles(
+                        file_id=doc.file_id, message_id=ai_message.id
+                    )
+                    session.add(upload_document_data)
                 session.commit()
             except Exception as e:
                 session.rollback()

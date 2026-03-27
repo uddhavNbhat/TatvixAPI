@@ -40,6 +40,17 @@ class Message(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     chat: Chat = Relationship(back_populates="messages")
+    files: list["MessageFiles"] = Relationship(
+        back_populates="message", cascade_delete=True
+    )
+
+
+class MessageFiles(SQLModel, table=True):
+    id: str = Field(primary_key=True, default_factory=lambda: str(uuid4()))
+    message_id: str = Field(foreign_key="message.id", nullable=False)
+    file_id: str = Field(foreign_key="files.id")
+
+    message: Message = Relationship(back_populates="files")
 
 
 class Files(SQLModel, table=True):

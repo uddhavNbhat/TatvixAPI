@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from app.utils.security import security
 from typing import Annotated
-from app.models.models import User, Chat, Message
+from app.models.models import User, Chat, Message, MessageFiles
 from app.utils.db.sql import SQLSessionDep
 from sqlmodel import select
+from sqlalchemy.orm import selectinload
 from app.utils.logger import logger
 
 router = APIRouter(prefix="/api")
@@ -88,6 +89,7 @@ def find_chat(
             select(Message)
             .where(Message.chat_id == chat_id)
             .order_by(Message.created_at)
+            .options(selectinload(Message.files))
         ).all()
 
     except Exception as e:
