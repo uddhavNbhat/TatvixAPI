@@ -21,6 +21,7 @@ from app.utils.logger import logger
 from app.internal.agent.utils.custom.model_factory import ModelFactory
 from app.internal.agent.sub_agents.executor_agent import ExecutionAgent
 from app.internal.agent.sub_agents.objective_agent import ObjectiveAgent
+from app.internal.agent.utils.custom.weaviate import WeaviateStore
 import certifi
 import os
 
@@ -40,13 +41,17 @@ class LegalAgent:
         self.tool_caller = None
         self.tools = None
         self._checkpointer: MongoDBSaver = None
+        self._store: WeaviateStore = None
         self.objective_agent: CompiledStateGraph = None
         self.execution_agent: CompiledStateGraph = None
         self.agent_graph: CompiledStateGraph = None
 
     @classmethod
     async def init_agent(
-        cls, model_family: str, model_name: str, checkpointer: MongoDBSaver
+        cls,
+        model_family: str,
+        model_name: str,
+        checkpointer: MongoDBSaver,
     ):
         """Decoupled async instance variable initializer for class"""
         self = cls()  # Class object
@@ -65,9 +70,10 @@ class LegalAgent:
                     cls._cahced_tools = await self._get_mcp_tools()
                 self.tool_caller = await AgentTools.init_agent_tools(cls._cahced_tools)
                 self._checkpointer = checkpointer
+                self._store = WeaviateStore()
                 self.objective_agent = ObjectiveAgent(llm=self.llm).agent_graph
                 self.execution_agent = ExecutionAgent(
-                    llm=self.llm, tool_caller=self.tool_caller
+                    llm=self.llm, tool_caller=self.tool_caller, store=self._store
                 ).agent_graph
             except Exception as e:
                 raise e
@@ -149,6 +155,9 @@ class LegalAgent:
                 self.llm, ChatGoogleGenerativeAI
             ):
                 content = response["llm_output"][0]["text"]
+
+            # Parse user query into vector store
+            await self._store.put(thread_id=session_id, user_query=query)
 
             return {
                 "objective": objective,

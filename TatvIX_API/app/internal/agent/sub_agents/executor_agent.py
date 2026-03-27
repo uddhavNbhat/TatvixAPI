@@ -30,6 +30,7 @@ from app.internal.agent.utils.nodes.executor_agent.aggregator import (
     irrelvant_query,
 )
 from app.internal.agent.utils.custom.agent_tools import AgentTools
+from app.internal.agent.utils.custom.weaviate import WeaviateStore
 
 
 class ExecutionAgent:
@@ -37,6 +38,7 @@ class ExecutionAgent:
         self,
         llm: ChatGroq | ChatOllama | ChatGoogleGenerativeAI,
         tool_caller: AgentTools,
+        store: WeaviateStore,
     ):
         self.retries = 3
         self.tool_caller = tool_caller
@@ -54,6 +56,7 @@ class ExecutionAgent:
         )
         self.aggregator_llm = llm  # No structured output to support streaming
         self.agent_graph: CompiledStateGraph = self._build_agent()
+        self._store = store
 
     def _build_agent(self):
         """Method to build agent"""

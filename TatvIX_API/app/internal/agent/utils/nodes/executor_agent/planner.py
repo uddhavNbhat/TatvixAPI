@@ -1,5 +1,5 @@
 from typing import Literal
-from langchain.messages import HumanMessage
+from langchain.messages import HumanMessage, SystemMessage
 from app.internal.agent.utils.custom.prompts import prompt_templates
 from app.internal.agent.utils.states.executor import (
     ExecutorAgentSchema,
@@ -21,10 +21,23 @@ async def should_plan(
 
         user_query_reference = [x for x in base_messages if isinstance(x, HumanMessage)]
 
-        should_plan_template = prompt_templates.get_should_plan_template()
+        user_queries = {
+            index: m.content for index, m in enumerate(user_query_reference)
+        }
+
+        lines = [
+            f"Q{idx + 1}: {query}" for idx, query in enumerate(user_queries.values())
+        ]
+        context_block = "\n".join(lines)
+
+        should_plan_template = prompt_templates.get_should_plan_template(
+            context_block=context_block
+        )
         messages = [
             should_plan_template,
-            *user_query_reference,
+            SystemMessage(
+                content=f"Previous User queries to check continuity: {str(user_queries)}"
+            ),
             HumanMessage(content=f"My current question: {user_query}"),
         ]
         for _ in range(0, self.retries):
@@ -51,9 +64,16 @@ async def planner_node(
         base_messages = state.get("messages", [])
 
         user_query_reference = [x for x in base_messages if isinstance(x, HumanMessage)]
-        formatted_history = "\n".join(
-            [f"{i+1}. {msg}" for i, msg in enumerate(user_query_reference)]
-        )
+
+        user_queries = {
+            index: m.content for index, m in enumerate(user_query_reference)
+        }
+
+        lines = [
+            f"Q{idx + 1}: {query}" for idx, query in enumerate(user_queries.values())
+        ]
+        context_block = "\n".join(lines)
+
         planner_prompt = prompt_templates.get_planner_template(summary=summary)
 
         messages = [
@@ -61,7 +81,7 @@ async def planner_node(
             HumanMessage(
                 content=f"""
                     Conversation Context So Far:
-                    {formatted_history}
+                    {context_block}
 
                     Current User Query:
                     {user_query}

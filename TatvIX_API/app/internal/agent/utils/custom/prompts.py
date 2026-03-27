@@ -44,56 +44,35 @@ class PromptTemplates:
         return user_objective_template
 
     @staticmethod
-    def get_should_plan_template():
+    def get_should_plan_template(context_block):
         should_plan_template = SystemMessage(
-            content="""
-            You are a classification system.
+            content=f"""You are a legal query classifier.
+            INPUTS YOU RECEIVE:
+            - Recent conversation queries (may be empty)
+            - Current user query
 
-            You are given:
-            - The LAST 3 MESSAGES of the conversation (context)
-            - The CURRENT USER QUERY
+            CLASSIFICATION RULE:
+            Output {{"plan": true}} if ANY of the following is true:
+            1. Current query involves: laws, regulations, rights, court cases, contracts, compliance, disputes, liability, government acts, legal procedures, or legal documentation
+            2. Current query is a follow-up/continuation of a PRIOR LEGAL query (e.g. "explain more", "give details", "what about X?" where X was legal)
 
-            Your task is to determine whether the CURRENT USER QUERY should be treated as LEGAL.
+            Output {{"plan": false}} ONLY if BOTH are true:
+            1. Current query has zero legal relevance on its own
+            2. No prior query in context was legal
+            
+            CONVERSATION CONTEXT (recent queries, oldest to newest):
+            {context_block}
 
-            IMPORTANT:
-            - You MUST make your decision primarily based on the conversation context (last 3 messages).
-            - If the current query is a continuation, follow-up, or dependent on prior LEGAL discussion, then it MUST be classified as LEGAL — even if the current query alone does not appear legal.
-            - If there is NO legal context in the previous messages, then evaluate the current query normally.
+            Use this context ONLY to check if the current query is a continuation of a prior legal discussion.
 
-            A query is considered LEGAL if it involves:
-            - Laws, regulations, legal rights, or legal procedures
-            - Court cases, judgments, or legal documentation
-            - Contracts, agreements, compliance, or policies
-            - Legal advice, disputes, liabilities, or penalties
-            - Government rules, acts, or statutory interpretation
+            CRITICAL — CONTINUITY OVERRIDE:
+            If prior context contains legal queries, treat vague follow-ups like:
+            "explain more", "give details", "can you elaborate", "what does that mean", "now tell me about X"
+            as LEGAL — do not penalize for lack of explicit legal keywords.
 
-            A query is NOT LEGAL if:
-            - It has no relation to legal topics AND
-            - It does not depend on prior legal conversation context
-
-            Priority Rules:
-            1. Conversation continuity > standalone interpretation
-            2. If prior context is legal → bias towards LEGAL
-            3. Only classify as NOT LEGAL if both:
-            - prior context is non-legal AND
-            - current query is non-legal
-
-            Strictly return ONLY a JSON object in the following format:
-
-            If relevant:
-            {
-                "plan": true
-            }
-
-            If NOT relevant:
-            {
-                "plan": false
-            }
-
-            Do not include explanations.
-            Do not include extra fields.
-            Do not include text outside JSON.
-        """
+            OUTPUT FORMAT:
+            Return ONLY valid JSON. No explanation. No extra fields.
+            {{"plan": true}} or {{"plan": false}}"""
         )
         return should_plan_template
 
@@ -123,12 +102,36 @@ class PromptTemplates:
             DO NOT reinterpret or force non-legal queries into legal context.
             </LEGAL DOMAIN ENFORCEMENT — STRICT>
 
+            <CONTEXT USAGE POLICY — STRICT>
+
+            You will be given previous conversation content.
+
+            This content is provided PURELY FOR REFERENCE.
+
+            Rules:
+            • DO NOT treat previous conversation as the primary query
+            • DO NOT override or dilute the CURRENT user query using past context
+            • DO NOT expand scope beyond the CURRENT query using history
+
+            You MAY use previous context ONLY IF:
+            • the current query is a FOLLOW-UP question
+            • the query depends on missing entities (e.g., "this case", "that law", "they")
+            • clarification from past queries is REQUIRED to construct a meaningful plan
+
+            If used:
+            • use it strictly to RESOLVE AMBIGUITY
+            • NOT to introduce new objectives
+            • NOT to broaden the scope
+
+            If NOT required:
+            • IGNORE the previous conversation entirely
+
+            The CURRENT USER QUERY ALWAYS HAS ABSOLUTE PRIORITY.
+            </CONTEXT USAGE POLICY — STRICT>
+
             <CONTEXT>
             Summary of conversation so far:
             {summary}
-
-            Use this ONLY if necessary for continuity.
-            DO NOT override the current user query.
             </CONTEXT>
 
             <AVAILABLE TOOLS>
@@ -155,18 +158,18 @@ class PromptTemplates:
 
             • You SHOULD use BOTH tools when they provide complementary value:
 
-                - document_search → for structured legal sources (statutes, case law, doctrine)
-                - search_engine → for recent updates, interpretations, or broader context
+                - document_search → structured legal sources (statutes, case law, doctrine)
+                - search_engine → recent developments, interpretations, practical context
 
             • Prefer INCLUDING at least one task for EACH tool when:
-                - the query involves both legal doctrine AND real-world/application context
-                - the query may require recent rulings, amendments, or interpretations
+                - doctrine + real-world interpretation is needed
+                - recent rulings or amendments may affect the answer
 
             • You MAY skip one tool ONLY IF:
-                - it adds NO meaningful value to solving the query
-                - using it would be redundant
+                - it adds NO meaningful value
+                - it would be redundant
 
-            • DO NOT overuse a single tool if both tools are clearly relevant
+            • DO NOT overuse a single tool if both are clearly relevant
 
             5. NO OVER-PLANNING:
             • DO NOT split tasks unnecessarily
@@ -191,12 +194,13 @@ class PromptTemplates:
             Tasks must:
             • be logically necessary
             • be ordered by dependency
-            • directly contribute to solving the user query
+            • directly contribute to solving the CURRENT user query
 
             DO NOT:
             • exceed 4 tasks
             • over-analyze simple queries
             • answer the question
+            • rely on previous conversation unless strictly required
 
             </INSTRUCTIONS>
 

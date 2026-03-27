@@ -25,6 +25,7 @@
 .coverage
 .coverage.*
 htmlcov/
+**/uv.lock
 
 # ==============================
 # Databases / local state

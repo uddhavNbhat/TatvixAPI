@@ -169,4 +169,5 @@ async def talk_chat(
         "message": "Model has successfully returned a response",
         "content": content,
         "chat_id": chat_id,
+        "document_ids": document_data,
     }

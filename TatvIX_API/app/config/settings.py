@@ -1,7 +1,10 @@
 from pydantic_settings import SettingsConfigDict, BaseSettings
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent #Temp resoltion, should be dynamic in nature not static like this.
+BASE_DIR = (
+    Path(__file__).resolve().parent.parent.parent
+)  # Temp resoltion, should be dynamic in nature not static like this.
+
 
 class Settings(BaseSettings):
     SQLITE_DB_NAME: str
@@ -14,9 +17,10 @@ class Settings(BaseSettings):
     WEAVIATE_SERVER: str
     GOOGLE_API_KEY: str
     MCP_SERVER: str
-    GROQ_API_KEY : str
+    GROQ_API_KEY: str
     OPEN_ROUTER_API_KEY: str
-    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env") #Read your .env file
+    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env")  # Read your .env file
+
 
 # Instantiate settings so that you can import the instance directly
 settings = Settings()
