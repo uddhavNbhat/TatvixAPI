@@ -49,7 +49,7 @@ class Message(SQLModel, table=True):
 class MessageFiles(SQLModel, table=True):
     id: str = Field(primary_key=True, default_factory=lambda: str(uuid4()))
     message_id: str | None = Field(foreign_key="message.id", default=None)
-    file_id: str = Field(foreign_key="files.id")
+    file_id: str
 
     message: Optional[Message] = Relationship(back_populates="files")
 

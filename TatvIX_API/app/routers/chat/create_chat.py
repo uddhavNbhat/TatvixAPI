@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, Body
 from app.utils.security import security
 from typing import Annotated
-from app.models.models import User, Chat, Message, MessageFiles
+from app.models.models import User, Chat, Message, MessageFiles, Files
 from app.internal.agent.graph import LegalAgent
 from app.utils.db.sql import SQLSessionDep
 from sqlmodel import select
@@ -139,10 +139,21 @@ async def talk_chat(
 
         logger.info(content)
 
+        file_paths = [
+            session.exec(select(Files.file_path).where(Files.id == doc.file_id)).first()
+            for doc in document_data
+        ]
+
+        logger.info(f"File ids: {file_paths}\n")
+
+        clean_file_ids = [path.split("/")[-1] if path else None for path in file_paths]
+
+        logger.info(f"File ids: {clean_file_ids}\n")
+
         if content:
             human_message = Message(chat_id=chat_id, role="human", content=user_query)
             ai_message = Message(chat_id=chat_id, role="ai", content=content)
-            file_objects = [MessageFiles(file_id=doc.file_id) for doc in document_data]
+            file_objects = [MessageFiles(file_id=file_id) for file_id in clean_file_ids]
             ai_message.files = file_objects
             try:
                 session.add(human_message)
