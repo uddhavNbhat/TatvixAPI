@@ -4,7 +4,6 @@ from typing import Annotated
 from app.models.models import User, Chat, Message, MessageFiles
 from app.utils.db.sql import SQLSessionDep
 from sqlmodel import select
-from sqlalchemy.orm import selectinload
 from app.utils.logger import logger
 
 router = APIRouter(prefix="/api")
@@ -89,7 +88,6 @@ def find_chat(
             select(Message)
             .where(Message.chat_id == chat_id)
             .order_by(Message.created_at)
-            .options(selectinload(Message.files))
         ).all()
 
     except Exception as e:
@@ -105,6 +103,16 @@ def find_chat(
     return {
         "code": "CHAT_RETRIEVED",
         "message": "chat history found successfully",
-        "messages": messages,
+        "messages": [
+            {
+                "id": m.id,
+                "chat_id": m.chat_id,
+                "role": m.role,
+                "content": m.content,
+                "created_at": m.created_at,
+                "files": [{"id": f.id, "file_id": f.file_id} for f in m.files],
+            }
+            for m in messages
+        ],
         "chat_id": chat_id,
     }

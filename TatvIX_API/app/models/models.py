@@ -1,5 +1,6 @@
 from sqlmodel import Field, SQLModel, Relationship
 from datetime import datetime, timezone
+from typing import Optional
 from uuid import uuid4
 
 
@@ -50,7 +51,7 @@ class MessageFiles(SQLModel, table=True):
     message_id: str | None = Field(foreign_key="message.id", default=None)
     file_id: str = Field(foreign_key="files.id")
 
-    message: Message = Relationship(back_populates="files")
+    message: Optional[Message] = Relationship(back_populates="files")
 
 
 class Files(SQLModel, table=True):
