@@ -1,7 +1,7 @@
 from pwdlib import PasswordHash
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends,HTTPException
+from fastapi import Depends, HTTPException
 from app.models.models import User
 from sqlmodel import select
 from app.utils.db.sql import SQLSessionDep
@@ -13,20 +13,23 @@ import uuid
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="login")
 
-class Security():
-    
-    def __init__(self):
-        self.hash_object = PasswordHash.recommended() # Use the reccomended password hash settings
 
-    def hash_password(self,password:str):
-        """ Utility to hash user password """
+class Security:
+
+    def __init__(self):
+        self.hash_object = (
+            PasswordHash.recommended()
+        )  # Use the reccomended password hash settings
+
+    def hash_password(self, password: str):
+        """Utility to hash user password"""
         return self.hash_object.hash(password)
 
-    def verify_password(self,password:str, hashed_password:str):
-        """ Utility to verify user password """
+    def verify_password(self, password: str, hashed_password: str):
+        """Utility to verify user password"""
         return self.hash_object.verify(password, hashed_password)
-    
-    def create_access_token(self, data:dict, expire_time: timedelta):
+
+    def create_access_token(self, data: dict, expire_time: timedelta):
         """
         Utility to create access token for user authentication and authorization
         args -> data : dict -> a dictionary of user info to be encoded in jwt
@@ -36,14 +39,14 @@ class Security():
         if expire_time:
             expire = datetime.now() + expire_time
 
-        to_encode.update({"exp" : expire})
-        encoded_jwt = jwt.encode(to_encode,settings.JWT_SECRET_KEY,algorithm=settings.ENC_ALGORITHM)
+        to_encode.update({"exp": expire})
+        encoded_jwt = jwt.encode(
+            to_encode, settings.JWT_SECRET_KEY, algorithm=settings.ENC_ALGORITHM
+        )
         return encoded_jwt
-    
+
     def get_current_user(
-        self,
-        token: Annotated[str, Depends(oauth2_schema)],
-        db_session: SQLSessionDep
+        self, token: Annotated[str, Depends(oauth2_schema)], db_session: SQLSessionDep
     ):
         """
         Utility to get current user for every protected endpoint
@@ -53,32 +56,49 @@ class Security():
                 db_session : SessionDep, a database session dependency object for executing db operation per request
         """
         try:
-            payload = jwt.decode(token,settings.JWT_SECRET_KEY, algorithms=[settings.ENC_ALGORITHM])
+            payload = jwt.decode(
+                token, settings.JWT_SECRET_KEY, algorithms=[settings.ENC_ALGORITHM]
+            )
             username = payload.get("usr")
             expiry = payload.get("exp")
 
             if datetime.fromtimestamp(expiry) - datetime.now() < timedelta(0):
-                raise HTTPException(status_code=401,detail={"code":"TOKEN_EXPIRY", "message":"Session has expired!"})
-            
+                raise HTTPException(
+                    status_code=401,
+                    detail={"code": "TOKEN_EXPIRY", "message": "Session has expired!"},
+                )
+
             if username is None:
-                raise HTTPException(status_code=401,detail={"code":"UNAUTHORIZED_ACCESS", "message":"Unauthorized Access!"})
-            
+                raise HTTPException(
+                    status_code=401,
+                    detail={
+                        "code": "UNAUTHORIZED_ACCESS",
+                        "message": "Unauthorized Access!",
+                    },
+                )
+
             user = db_session.exec(
-                select(User)
-                .where(User.username == username)
+                select(User).where(User.username == username)
             ).first()
 
             if user is None:
-                raise HTTPException(status_code=401,detail={"code":"UNAUTHORIZED_ACCESS", "message":"Unauthorized Access!"})
-            
+                raise HTTPException(
+                    status_code=401,
+                    detail={
+                        "code": "UNAUTHORIZED_ACCESS",
+                        "message": "Unauthorized Access!",
+                    },
+                )
+
             return user
 
         except InvalidTokenError as e:
             raise e
-        
+
     @staticmethod
     def create_chat_hash() -> str:
-        """ Method to create unique user id combination for chat session. """
+        """Method to create unique user id combination for chat session."""
         return f"{uuid.uuid4()}"
+
 
 security = Security()

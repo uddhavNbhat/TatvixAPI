@@ -111,3 +111,17 @@ async def populate(
     except Exception as e:
         logger.error(f"Error at routers.populate: {e}")
         raise HTTPException(status_code=500, detail="Something went wrong!")
+
+
+@router.post("/weaviate/{folder_id}", status_code=200)
+async def populate_folder(
+    request: Request,
+    current_user: Annotated[User, Depends(security.get_current_user)],
+    session: SQLSessionDep,
+    data: PopulateWeaviate,
+):
+    try:
+        client: WeaviateClient = request.app.state.weaviate_client
+    except Exception as e:
+        logger.error(f"Error at routers.populate_folder: {e}")
+        raise HTTPException(status_code=500, detail="Something went wrong!")
