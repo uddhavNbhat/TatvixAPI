@@ -23,7 +23,7 @@ def get_chat_ids(
         chats = session.exec(
             select(Chat)
             .where(Chat.owner_id == current_user.id)
-            .where(Chat.folder_id == "global")
+            .where(Chat.folder_id.is_(None))
             .order_by(Chat.created_at.desc())
         ).all()
 
