@@ -39,7 +39,7 @@ class Chat(SQLModel, table=True):
         default=None, foreign_key="user.id", ondelete="CASCADE"
     )
     folder_id: str | None = Field(
-        default=None, foreign_key="folder.id", ondelete="CASCADE"
+        default="global", foreign_key="folder.id", ondelete="CASCADE"
     )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     header: str = Field(default="New Chat Created")  # Chat header

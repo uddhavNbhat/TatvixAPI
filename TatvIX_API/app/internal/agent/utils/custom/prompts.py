@@ -5,8 +5,7 @@ class PromptTemplates:
 
     @staticmethod
     def get_objective_template() -> SystemMessage:
-        user_objective_template = SystemMessage(
-            content="""
+        user_objective_template = SystemMessage(content="""
         Produce a refined 3–5 word user objective that best represents the query.
 
         Rules:
@@ -39,8 +38,7 @@ class PromptTemplates:
         {
         "objective": "Retrieve theft robbery documents"
         }
-        """
-        )
+        """)
         return user_objective_template
 
     @staticmethod
@@ -78,20 +76,19 @@ class PromptTemplates:
 
     @staticmethod
     def get_planner_template(summary: str):
-        planner_template = SystemMessage(
-            content=f"""
-            <ROLE>
-            You are a legal research planning engine.
+        planner_template = SystemMessage(content=f"""
+        <ROLE>
+            You are a Legal research planning engine.
 
             Your job is to generate a MINIMAL and SUFFICIENT set of research tasks
-            required to answer the user's legal query.
+            required to answer the user's legal query with respect to Indian Law.
 
             You are NOT solving the problem.
             You are ONLY designing an execution plan.
-            </ROLE>
+        </ROLE>
 
-            <LEGAL DOMAIN ENFORCEMENT — STRICT>
-            This system is ONLY for legal queries.
+        <LEGAL DOMAIN ENFORCEMENT — STRICT>
+            This system is ONLY for legal queries under Indian law.
 
             If the query is NOT legal, return:
 
@@ -100,88 +97,88 @@ class PromptTemplates:
             }}
 
             DO NOT reinterpret or force non-legal queries into legal context.
-            </LEGAL DOMAIN ENFORCEMENT — STRICT>
+        </LEGAL DOMAIN ENFORCEMENT — STRICT>
 
-            <CONTEXT USAGE POLICY — STRICT>
+        <CONTEXT USAGE POLICY — STRICT>
 
             You will be given previous conversation content.
 
             This content is provided PURELY FOR REFERENCE.
 
             Rules:
-            • DO NOT treat previous conversation as the primary query
-            • DO NOT override or dilute the CURRENT user query using past context
-            • DO NOT expand scope beyond the CURRENT query using history
+            - DO NOT treat previous conversation as the primary query
+            - DO NOT override or dilute the CURRENT user query using past context
+            - DO NOT expand scope beyond the CURRENT query using history
 
             You MAY use previous context ONLY IF:
-            • the current query is a FOLLOW-UP question
-            • the query depends on missing entities (e.g., "this case", "that law", "they")
-            • clarification from past queries is REQUIRED to construct a meaningful plan
+            - the current query is a FOLLOW-UP question
+            - the query depends on missing entities (e.g., "this case", "that law", "they")
+            - clarification from past queries is REQUIRED to construct a meaningful plan
 
             If used:
-            • use it strictly to RESOLVE AMBIGUITY
-            • NOT to introduce new objectives
-            • NOT to broaden the scope
+            - use it strictly to RESOLVE AMBIGUITY
+            - NOT to introduce new objectives
+            - NOT to broaden the scope
 
             If NOT required:
-            • IGNORE the previous conversation entirely
+            - IGNORE the previous conversation entirely
 
             The CURRENT USER QUERY ALWAYS HAS ABSOLUTE PRIORITY.
-            </CONTEXT USAGE POLICY — STRICT>
+        </CONTEXT USAGE POLICY — STRICT>
 
-            <CONTEXT>
+        <CONTEXT>
             Summary of conversation so far:
             {summary}
-            </CONTEXT>
+        </CONTEXT>
 
-            <AVAILABLE TOOLS>
+        <AVAILABLE TOOLS>
             document_search
             search_engine
-            </AVAILABLE TOOLS>
+        </AVAILABLE TOOLS>
 
-            <CRITICAL PLANNING CONSTRAINTS>
+        <CRITICAL PLANNING CONSTRAINTS>
 
             1. MAXIMUM TASK LIMIT:
-            • You MUST generate AT MOST 4 tasks
-            • NEVER exceed 4 tasks
+            - You MUST generate AT MOST 4 tasks
+            - NEVER exceed 4 tasks
 
             2. MINIMALITY PRINCIPLE:
-            • Generate ONLY the minimum number of tasks required
-            • Prefer fewer high-quality tasks over many small ones
+            - Generate ONLY the minimum number of tasks required
+            - Prefer fewer high-quality tasks over many small ones
 
             3. COMPLEXITY AWARENESS:
-            • SIMPLE queries → 1–2 tasks
-            • MODERATE queries → 2–3 tasks
-            • COMPLEX queries → up to 4 tasks ONLY
+            - SIMPLE queries → 1–2 tasks
+            - MODERATE queries → 2–3 tasks
+            - COMPLEX queries → up to 4 tasks ONLY
 
             4. TOOL UTILIZATION (IMPORTANT):
 
-            • You SHOULD use BOTH tools when they provide complementary value:
+            - You SHOULD use BOTH tools when they provide complementary value:
 
-                - document_search → structured legal sources (statutes, case law, doctrine)
-                - search_engine → recent developments, interpretations, practical context
+                - document_search → structured Indian legal sources (Indian statutes, Supreme Court/High Court case law, Indian legal doctrine)
+                - search_engine → recent Indian judicial developments, regulatory interpretations, practical context
 
-            • Prefer INCLUDING at least one task for EACH tool when:
+            - Prefer INCLUDING at least one task for EACH tool when:
                 - doctrine + real-world interpretation is needed
-                - recent rulings or amendments may affect the answer
+                - recent rulings or amendments under Indian law may affect the answer
 
-            • You MAY skip one tool ONLY IF:
+            - You MAY skip one tool ONLY IF:
                 - it adds NO meaningful value
                 - it would be redundant
 
-            • DO NOT overuse a single tool if both are clearly relevant
+            - DO NOT overuse a single tool if both are clearly relevant
 
             5. NO OVER-PLANNING:
-            • DO NOT split tasks unnecessarily
-            • DO NOT create exploratory or speculative tasks
+            - DO NOT split tasks unnecessarily
+            - DO NOT create exploratory or speculative tasks
 
             6. NO REDUNDANCY:
-            • Each task must contribute unique value
-            • Avoid overlapping objectives
+            - Each task must contribute unique value
+            - Avoid overlapping objectives
 
-            </CRITICAL PLANNING CONSTRAINTS>
+        </CRITICAL PLANNING CONSTRAINTS>
 
-            <INSTRUCTIONS>
+        <INSTRUCTIONS>
 
             Each task must contain:
 
@@ -192,19 +189,21 @@ class PromptTemplates:
             5. task_conclusion
 
             Tasks must:
-            • be logically necessary
-            • be ordered by dependency
-            • directly contribute to solving the CURRENT user query
+            - be grounded exclusively in Indian law (Acts, Rules, Indian case law, constitutional provisions)
+            - be logically necessary
+            - be ordered by dependency
+            - directly contribute to solving the CURRENT user query
 
             DO NOT:
-            • exceed 4 tasks
-            • over-analyze simple queries
-            • answer the question
-            • rely on previous conversation unless strictly required
+            - exceed 4 tasks
+            - reference non-Indian jurisdictions unless explicitly asked
+            - over-analyze simple queries
+            - answer the question
+            - rely on previous conversation unless strictly required
 
-            </INSTRUCTIONS>
+        </INSTRUCTIONS>
 
-            <OUTPUT FORMAT>
+        <OUTPUT FORMAT>
             STRICT JSON ONLY.
 
             {{
@@ -221,15 +220,13 @@ class PromptTemplates:
             }}
 
             Return ONLY JSON.
-            </OUTPUT FORMAT>
-        """
-        )
+        </OUTPUT FORMAT>
+        """)
         return planner_template
 
     @staticmethod
     def get_executor_template(tasks: str, completed_tasks: str):
-        executor_template = SystemMessage(
-            content=f"""
+        executor_template = SystemMessage(content=f"""
             <ROLE>
             You are a legal reasoning executor.
 
@@ -317,14 +314,12 @@ class PromptTemplates:
             }}
 
             </ONE SHOT EXAMPLE>
-            """
-        )
+            """)
         return executor_template
 
     @staticmethod
     def get_goals_met_template(tasks: str, previous_content: str):
-        goals_met_template = HumanMessage(
-            content=f"""
+        goals_met_template = HumanMessage(content=f"""
             You are a task completion classifier.
 
             Your job is to identify which tasks from the given list have been COMPLETED
@@ -418,14 +413,12 @@ class PromptTemplates:
             • No extra text
             • Do NOT include incomplete tasks
             • Ensure exact schema compliance
-            """
-        )
+            """)
         return goals_met_template
 
     @staticmethod
     def get_aggregator_template() -> HumanMessage:
-        return HumanMessage(
-            content="""
+        return HumanMessage(content="""
             You are a legal research synthesizer.
 
             You will be provided with multiple prior messages containing:
@@ -468,13 +461,11 @@ class PromptTemplates:
             • Avoid repetition and unnecessary verbosity
 
             Return ONLY the final answer (no JSON, no metadata).
-            """
-        )
+            """)
 
     @staticmethod
     def get_summarizer_template() -> SystemMessage:
-        return SystemMessage(
-            content="""
+        return SystemMessage(content="""
             You are a legal conversation summarizer.
 
             Your task is to maintain a structured, cumulative summary of the conversation across multiple user interactions.
@@ -529,13 +520,11 @@ class PromptTemplates:
 
             Return ONLY the final summary.
             No extra text.
-            """
-        )
+            """)
 
     @staticmethod
     def get_irrelevant_query_template() -> SystemMessage:
-        return SystemMessage(
-            content="""
+        return SystemMessage(content="""
             You are a strict rejection agent in a legal AI system.
 
             Your role is to identify queries that are NOT related to legal topics and respond accordingly.
@@ -556,8 +545,7 @@ class PromptTemplates:
             • Maintain a neutral and professional tone
 
             You MUST NOT include any actual answer to the user's query.
-        """
-        )
+        """)
 
 
 prompt_templates = PromptTemplates()
