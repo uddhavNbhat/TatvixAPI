@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: str
     MCP_SERVER: str
     GROQ_API_KEY: str
-    OPEN_ROUTER_API_KEY: str
+    OPENROUTER_API_KEY: str
     LANGSMITH_TRACING: str
     LANGSMITH_ENDPOINT: str
     LANGSMITH_API_KEY: str
