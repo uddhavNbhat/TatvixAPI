@@ -2,6 +2,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
+from langchain_openrouter import ChatOpenRouter
 from typing import List
 import os
 from pathlib import Path
@@ -58,15 +59,14 @@ class OpenRouter:
     def __init__(self, model_name):
         self.model = self._init_model(model_name=model_name)
 
-    def _init_model(self, model_name) -> ChatOpenAI:
+    def _init_model(self, model_name) -> ChatOpenRouter:
         """Method to return instance of selected model"""
         if model_name not in self._supported_models:
             raise Exception("Model not supported!")
 
-        return ChatOpenAI(
+        return ChatOpenRouter(
             model=model_name,
-            api_key=settings.OPEN_ROUTER_API_KEY,
-            base_url="https://openrouter.ai/api/v1",
+            api_key=settings.OPENROUTER_API_KEY,
         )
 
 
