@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from app.config.settings import settings
 from app.routers.chat import create_chat, read_chat, delete_chat
 from app.routers.folders import create_folders, read_folders, delete_folders
 from app.routers.folder_chats import (
@@ -10,7 +11,6 @@ from app.routers.folder_chats import (
 from app.routers.setup import create_setup, delete_setup
 from app.routers.auth import authenticate
 from fastapi.middleware.cors import CORSMiddleware
-from app.config.settings import settings
 from langgraph.checkpoint.mongodb import MongoDBSaver
 
 origins = [

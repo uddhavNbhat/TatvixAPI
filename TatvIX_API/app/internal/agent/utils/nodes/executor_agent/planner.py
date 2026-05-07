@@ -8,6 +8,7 @@ from app.internal.agent.utils.states.executor import (
 )
 from app.internal.agent.utils.custom.wrapper import make_async_node
 from app.internal.agent.utils.custom.agent_class import ExecutorAgentStructure
+from app.utils.logger import logger
 
 
 @make_async_node
@@ -74,19 +75,21 @@ async def planner_node(
         ]
         context_block = "\n".join(lines)
 
-        planner_prompt = prompt_templates.get_planner_template(summary=summary)
+        if not context_block:
+            context_block = "No user queries asked so far!"
+
+        logger.info(f"User conversation so far: {context_block}")
+
+        planner_prompt = prompt_templates.get_planner_template(
+            summary=summary, user_query_history=context_block
+        )
 
         messages = [
             planner_prompt,
-            HumanMessage(
-                content=f"""
-                    Conversation Context So Far:
-                    {context_block}
-
+            HumanMessage(content=f"""
                     Current User Query:
                     {user_query}
-                """
-            ),
+                """),
         ]
 
         for _ in range(0, self.retries):

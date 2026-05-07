@@ -92,11 +92,9 @@ async def aggregate(
     )
 
     try:
-        new_meassages = []
-        new_meassages.append(HumanMessage(content=user_query))
-        new_meassages.append(
-            AIMessage(content=f"TASKS COMPLETED SO FAR : {task_track}")
-        )
+        new_messages = []
+        new_messages.append(HumanMessage(content=user_query))
+        new_messages.append(AIMessage(content=f"TASKS COMPLETED SO FAR : {task_track}"))
 
         conversation_track = {}
 
@@ -115,7 +113,7 @@ async def aggregate(
             *all_contents,
             SystemMessage(content=f"REFERENCE LINKS BELOW: {links_text}"),
             SystemMessage(content="TASK PROGRESS CONTEXT BELOW:"),
-            *new_meassages,
+            *new_messages,
             aggregation_template,
         ]
         messages = [m for m in messages if m is not None]
@@ -123,7 +121,7 @@ async def aggregate(
         logger.info(f"\n AGGREGATOR RESPONSE: {response} \n")
         return {
             "aggregation_output": [response],
-            "messages": base_messages,
+            "messages": new_messages,
             "document_output": ["clear", *final_docs],
         }
 

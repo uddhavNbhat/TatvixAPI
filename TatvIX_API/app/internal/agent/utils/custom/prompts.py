@@ -75,9 +75,9 @@ class PromptTemplates:
         return should_plan_template
 
     @staticmethod
-    def get_planner_template(summary: str):
+    def get_planner_template(summary: str, user_query_history: str):
         planner_template = SystemMessage(content=f"""
-        <ROLE>
+            <ROLE>
             You are a Legal research planning engine.
 
             Your job is to generate a MINIMAL and SUFFICIENT set of research tasks
@@ -85,9 +85,9 @@ class PromptTemplates:
 
             You are NOT solving the problem.
             You are ONLY designing an execution plan.
-        </ROLE>
+            </ROLE>
 
-        <LEGAL DOMAIN ENFORCEMENT — STRICT>
+            <LEGAL DOMAIN ENFORCEMENT — STRICT>
             This system is ONLY for legal queries under Indian law.
 
             If the query is NOT legal, return:
@@ -97,91 +97,69 @@ class PromptTemplates:
             }}
 
             DO NOT reinterpret or force non-legal queries into legal context.
-        </LEGAL DOMAIN ENFORCEMENT — STRICT>
+            </LEGAL DOMAIN ENFORCEMENT — STRICT>
 
-        <CONTEXT USAGE POLICY — STRICT>
-
-            You will be given previous conversation content.
-
-            This content is provided PURELY FOR REFERENCE.
-
-            Rules:
-            - DO NOT treat previous conversation as the primary query
-            - DO NOT override or dilute the CURRENT user query using past context
-            - DO NOT expand scope beyond the CURRENT query using history
-
-            You MAY use previous context ONLY IF:
-            - the current query is a FOLLOW-UP question
-            - the query depends on missing entities (e.g., "this case", "that law", "they")
-            - clarification from past queries is REQUIRED to construct a meaningful plan
-
-            If used:
-            - use it strictly to RESOLVE AMBIGUITY
-            - NOT to introduce new objectives
-            - NOT to broaden the scope
-
-            If NOT required:
-            - IGNORE the previous conversation entirely
-
-            The CURRENT USER QUERY ALWAYS HAS ABSOLUTE PRIORITY.
-        </CONTEXT USAGE POLICY — STRICT>
-
-        <CONTEXT>
+            <CONTEXT>
             Summary of conversation so far:
             {summary}
-        </CONTEXT>
+            </CONTEXT>
 
-        <AVAILABLE TOOLS>
+            <AVAILABLE TOOLS>
             document_search
             search_engine
-        </AVAILABLE TOOLS>
+            </AVAILABLE TOOLS>
 
-        <CRITICAL PLANNING CONSTRAINTS>
+            <CRITICAL PLANNING CONSTRAINTS>
 
             1. MAXIMUM TASK LIMIT:
             - You MUST generate AT MOST 4 tasks
-            - NEVER exceed 4 tasks
 
             2. MINIMALITY PRINCIPLE:
-            - Generate ONLY the minimum number of tasks required
+            - Generate ONLY the minimum tasks required
             - Prefer fewer high-quality tasks over many small ones
+            
+            3. SIMPLICITY:
+            - Generate mainly simple tasks that can be met so that the user has a high level understanding too.
+            - Do not overcomplicate the tasks and make sure they are not overpsecific and are in scope of the
+              enhanced user query.
 
             3. COMPLEXITY AWARENESS:
             - SIMPLE queries → 1–2 tasks
             - MODERATE queries → 2–3 tasks
-            - COMPLEX queries → up to 4 tasks ONLY
+            - COMPLEX queries → up to 4 tasks
 
-            4. TOOL UTILIZATION (IMPORTANT):
+            4. TOOL UTILIZATION:
+            - Use BOTH tools when they provide complementary value
 
-            - You SHOULD use BOTH tools when they provide complementary value:
+                - document_search → Indian statutes, case law, doctrine
+                - search_engine → recent judicial developments and practical context
 
-                - document_search → structured Indian legal sources (Indian statutes, Supreme Court/High Court case law, Indian legal doctrine)
-                - search_engine → recent Indian judicial developments, regulatory interpretations, practical context
-
-            - Prefer INCLUDING at least one task for EACH tool when:
-                - doctrine + real-world interpretation is needed
-                - recent rulings or amendments under Indian law may affect the answer
-
-            - You MAY skip one tool ONLY IF:
-                - it adds NO meaningful value
-                - it would be redundant
-
-            - DO NOT overuse a single tool if both are clearly relevant
+            - Skip a tool ONLY if redundant or unnecessary
 
             5. NO OVER-PLANNING:
             - DO NOT split tasks unnecessarily
-            - DO NOT create exploratory or speculative tasks
+            - DO NOT create speculative or exploratory tasks
 
             6. NO REDUNDANCY:
             - Each task must contribute unique value
-            - Avoid overlapping objectives
 
-        </CRITICAL PLANNING CONSTRAINTS>
+            7. TASK EXECUTION BALANCE:
+            - Mix broad and focused tasks appropriately
+            - Prefer early tasks that establish core legal grounding
+            - Use detailed tasks ONLY where precision is necessary
+            - Avoid making every task highly granular
+            - Ensure tasks are independently completable
 
-        <INSTRUCTIONS>
+            8. TASK STRUCTURE QUALITY:
+            - Prefer practical, outcome-oriented task scopes
+            - Use broad synthesis tasks when they can replace multiple narrow tasks
+            - Avoid parallel deep-analysis tasks unless essential
+
+            </CRITICAL PLANNING CONSTRAINTS>
+
+            <INSTRUCTIONS>
 
             Each task must contain:
-
             1. objective
             2. tool_call ("document_search" or "search_engine")
             3. enhanced_query
@@ -189,21 +167,63 @@ class PromptTemplates:
             5. task_conclusion
 
             Tasks must:
-            - be grounded exclusively in Indian law (Acts, Rules, Indian case law, constitutional provisions)
+            - be grounded exclusively in Indian law
             - be logically necessary
             - be ordered by dependency
-            - directly contribute to solving the CURRENT user query
+            - directly contribute to the CURRENT user query
 
             DO NOT:
             - exceed 4 tasks
-            - reference non-Indian jurisdictions unless explicitly asked
+            - reference foreign jurisdictions unless explicitly requested
             - over-analyze simple queries
             - answer the question
-            - rely on previous conversation unless strictly required
 
-        </INSTRUCTIONS>
+            </INSTRUCTIONS>
+            
+            <CONTEXT USAGE POLICY — STRICT>
 
-        <OUTPUT FORMAT>
+            Prior conversations:
+
+            {user_query_history}
+
+            This history provides conversational continuity and legal context.
+
+            Rules:
+            - Treat the CURRENT USER QUERY as the primary request
+            - Use prior conversation context to preserve continuity when relevant
+            - Maintain previously established legal subjects, statutes, entities, and procedural context unless explicitly changed by the user
+            - DO NOT unnecessarily reset or generalize the legal topic when the query is clearly a continuation
+
+            Use prior context especially when:
+            - the query is a FOLLOW-UP
+            - the user references prior discussion implicitly or explicitly
+            - legal entities/statutes/cases are omitted
+            - the user says:
+                - "based on previous question"
+                - "continue"
+                - "expand"
+                - "those laws"
+                - "this case"
+                - "that provision"
+                - similar contextual references
+
+            For follow-up queries:
+            - continue the existing legal research flow
+            - inherit relevant Indian legal context from earlier discussion
+            - refine or extend the prior objective instead of restarting analysis
+            - preserve the same legal domain unless the user explicitly changes it
+
+            DO NOT:
+            - introduce unrelated legal issues from history
+            - broaden scope beyond the current intent
+            - ignore clearly relevant prior legal context
+
+            The CURRENT USER QUERY always determines the active objective.
+            Prior context should support continuity, not override the current request.
+
+            </CONTEXT USAGE POLICY — STRICT>
+
+            <OUTPUT FORMAT>
             STRICT JSON ONLY.
 
             {{
@@ -220,7 +240,7 @@ class PromptTemplates:
             }}
 
             Return ONLY JSON.
-        </OUTPUT FORMAT>
+            </OUTPUT FORMAT>
         """)
         return planner_template
 
@@ -322,10 +342,10 @@ class PromptTemplates:
         goals_met_template = HumanMessage(content=f"""
             You are a task completion classifier.
 
-            Your job is to identify which tasks from the given list have been COMPLETED
-            based ONLY on the provided content.
+            Your job is to identify which tasks from the given list have been SUFFICIENTLY ADDRESSED
+            based on the provided content.
 
-            Tasks (ALL are currently incomplete):
+            Tasks:
             {tasks}
 
             Content from previous iterations:
@@ -333,12 +353,29 @@ class PromptTemplates:
 
             Rules:
 
-            • Only mark a task as COMPLETED if the content clearly satisfies its objective and conclusion
-            • Do NOT assume or infer beyond the content
-            • Be strict — partial information is NOT completion
-            • Do NOT output tasks that are not completed
-            • Do NOT invent or modify task conclusions
-            • If no tasks are completed, return an empty list
+            • Mark a task as COMPLETED if the content substantially contributes toward:
+                - the task objective
+                - the intended legal research outcome
+                - the task conclusion
+
+            • The content does NOT need to perfectly or explicitly match the exact conclusion wording
+            • Treat meaningful partial satisfaction as completion if:
+                - the core legal issue was addressed
+                - useful legal findings were produced
+                - relevant statutes, principles, case law, or procedural insights were identified
+                - the generated content would materially help the final user response
+
+            • Prefer marking tasks as completed when the available information is reasonably sufficient
+            • Use practical completion judgment rather than exact semantic matching
+            • A task may be completed even if some minor details are still missing
+            • Consider whether the task's research direction was effectively covered
+
+            DO NOT:
+            • invent facts not present in the content
+            • modify task conclusions
+            • mark tasks completed when the content is completely unrelated
+
+            If no tasks are sufficiently addressed, return an empty list.
 
             Return ONLY JSON in this format:
 
@@ -362,20 +399,21 @@ class PromptTemplates:
                 "task_id": "1",
                 "task_objective": "Determine if a contract is valid",
                 "task_conclusion": "The contract satisfies all essential elements of a valid contract"
-            }},
-            {{
-                "task_id": "2",
-                "task_objective": "Identify remedies for breach",
-                "task_conclusion": "Damages and specific performance are available"
             }}
             ]
 
             Content:
-            "A valid contract requires offer, acceptance, lawful consideration, and intention to create legal relations."
+            "The agreement includes offer, acceptance, and lawful consideration under Indian contract law."
 
             Output:
             {{
-            "completed_tasks": []
+                "completed_tasks": [
+                    {{
+                        "task_id": "1",
+                        "task_objective": "Determine if a contract is valid",
+                        "task_conclusion": "The contract satisfies all essential elements of a valid contract"
+                    }}
+                ]
             }}
 
             ---
@@ -385,24 +423,24 @@ class PromptTemplates:
             Tasks:
             [
             {{
-                "task_id": "1",
-                "task_objective": "Determine if a contract is valid",
-                "task_conclusion": "The contract satisfies all essential elements of a valid contract"
+                "task_id": "2",
+                "task_objective": "Identify remedies for breach",
+                "task_conclusion": "Damages and specific performance are available"
             }}
             ]
 
             Content:
-            "The agreement includes offer, acceptance, lawful consideration, and intention to create legal relations, fulfilling requirements under contract law."
+            "Courts may grant compensation and equitable relief depending on the nature of breach."
 
             Output:
             {{
-            "completed_tasks": [
-                {{
-                "task_id": "1",
-                "task_objective": "Determine if a contract is valid",
-                "task_conclusion": "The contract satisfies all essential elements of a valid contract"
-                }}
-            ]
+                "completed_tasks": [
+                    {{
+                        "task_id": "2",
+                        "task_objective": "Identify remedies for breach",
+                        "task_conclusion": "Damages and specific performance are available"
+                    }}
+                ]
             }}
 
             </EXAMPLES>
@@ -411,7 +449,7 @@ class PromptTemplates:
 
             • Output ONLY JSON
             • No extra text
-            • Do NOT include incomplete tasks
+            • Do NOT include unrelated tasks
             • Ensure exact schema compliance
             """)
         return goals_met_template

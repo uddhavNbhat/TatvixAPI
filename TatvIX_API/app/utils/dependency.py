@@ -4,8 +4,8 @@ from app.internal.agent.graph import LegalAgent
 
 async def get_legal_agent(
     request: Request,
-    model_family: str | None = "groq",
-    model_name: str | None = "openai/gpt-oss-20b",
+    model_family: str | None = "gemini",
+    model_name: str | None = "gemini-3-flash-preview",
 ):
     """Dependency to inject agent instance with correctly initialized global checkpointer."""
 

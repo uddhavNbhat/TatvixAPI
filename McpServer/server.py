@@ -41,7 +41,7 @@ def document_search(query: str, folder_id: str = "global") -> dict:
         top_k_response = documents.query.near_vector(
             near_vector=vector,
             filters=Filter.by_property("folder_id").equal(folder_id),
-            limit=3,
+            limit=5,
             return_metadata=MetadataQuery(distance=True),
         )
 

@@ -1,9 +1,12 @@
 from pydantic_settings import SettingsConfigDict, BaseSettings
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = (
     Path(__file__).resolve().parent.parent.parent
 )  # Temp resoltion, should be dynamic in nature not static like this.
+
+load_dotenv(BASE_DIR / ".env")
 
 
 class Settings(BaseSettings):
@@ -19,6 +22,11 @@ class Settings(BaseSettings):
     MCP_SERVER: str
     GROQ_API_KEY: str
     OPEN_ROUTER_API_KEY: str
+    LANGSMITH_TRACING: str
+    LANGSMITH_ENDPOINT: str
+    LANGSMITH_API_KEY: str
+    LANGSMITH_PROJECT: str
+    LANGSMITH_WORKSPACE_ID: str
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env")  # Read your .env file
 
 
