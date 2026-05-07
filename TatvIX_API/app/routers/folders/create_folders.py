@@ -9,7 +9,7 @@ from app.utils.db.sql import SQLSessionDep
 router = APIRouter(prefix="/api")
 
 
-@router.post("/dashboard/folder", status_code=200)
+@router.post("/folder", status_code=200)
 async def create_folder(
     request: Request,
     current_user: Annotated[User, Depends(security.get_current_user)],

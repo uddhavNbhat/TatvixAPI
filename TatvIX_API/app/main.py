@@ -1,7 +1,12 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.routers.chat import create_chat, read_chat, delete_chat
-from app.routers.folders import create_folders, read_folders
+from app.routers.folders import create_folders, read_folders, delete_folders
+from app.routers.folder_chats import (
+    create_folder_chats,
+    read_folder_chats,
+    delete_folder_chats,
+)
 from app.routers.setup import create_setup, delete_setup
 from app.routers.auth import authenticate
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,3 +59,7 @@ app.include_router(read_chat.router)
 app.include_router(delete_chat.router)
 app.include_router(create_folders.router)
 app.include_router(read_folders.router)
+app.include_router(delete_folders.router)
+app.include_router(create_folder_chats.router)
+app.include_router(read_folder_chats.router)
+app.include_router(delete_folder_chats.router)

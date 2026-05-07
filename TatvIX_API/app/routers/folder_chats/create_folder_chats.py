@@ -12,16 +12,17 @@ from app.utils.dependency import get_legal_agent
 router = APIRouter(prefix="/api")
 
 
-@router.post("/chat", status_code=201)
-async def create_chat(
+@router.post("/folder/{folder_id}/chat", status_code=201)
+async def create_folder_chat(
     request: Request,
     current_user: Annotated[User, Depends(security.get_current_user)],
     session: SQLSessionDep,
+    folder_id: str,
 ):
     """Method to create chat if chat does not exist"""
     try:
         chat_id = security.create_chat_hash()
-        chat = Chat(id=chat_id, owner_id=current_user.id)
+        chat = Chat(id=chat_id, owner_id=current_user.id, folder_id=folder_id)
         try:
             session.add(chat)
             session.commit()
@@ -33,6 +34,12 @@ async def create_chat(
                 detail={"code": "DB_ERROR", "message": "Failed to start chat"},
             )
 
+        return {
+            "code": "CHAT_CREATED",
+            "message": "chat created successfully",
+            "chat_id": chat_id,
+        }
+
     except Exception as e:
         logger.error(e)
         raise HTTPException(
@@ -43,18 +50,13 @@ async def create_chat(
             },
         )
 
-    return {
-        "code": "CHAT_CREATED",
-        "message": "chat created successfully",
-        "chat_id": chat_id,
-    }
 
-
-@router.post("/chat/{chat_id}", status_code=201)
-async def talk_chat(
+@router.post("/folder/{folder_id}/chat/{chat_id}", status_code=201)
+async def talk_folder_chat(
     session: SQLSessionDep,
     current_user: Annotated[User, Depends(security.get_current_user)],
     legal_agent: Annotated[LegalAgent, Depends(get_legal_agent)],
+    folder_id: str,  # Required
     chat_id: str,  # Required
     chat: ChatPayload = Body(...),
     model_family: str | None = None,
@@ -63,7 +65,7 @@ async def talk_chat(
 ):
     """
     End point to talk to the legal agent.
-    /chat/chat_id=<chat_id>?model_family=&model_name=,
+    folder/{folder_id}/chat/chat_id=<chat_id>?model_family=&model_name=,
     body: {
         "user_query":"<query>"
     }
@@ -82,6 +84,7 @@ async def talk_chat(
         current_chat = session.exec(
             select(Chat)
             .where(Chat.owner_id == current_user.id)
+            .where(Chat.folder_id == folder_id)
             .where(Chat.id == chat_id)
         ).first()
 
@@ -102,7 +105,7 @@ async def talk_chat(
             )
 
         response = await legal_agent.invoke(
-            query=user_query, session_id=chat_id, folder_id="global"
+            query=user_query, session_id=chat_id, folder_id=folder_id
         )
 
         content = response.get("content", "")
@@ -163,6 +166,14 @@ async def talk_chat(
                     detail={"code": "DB_ERROR", "message": "Failed to save messages"},
                 )
 
+        return {
+            "code": "MODEL_RESPONSE_SUCCESS",
+            "message": "Model has successfully returned a response",
+            "content": content,
+            "chat_id": chat_id,
+            "document_ids": document_data,
+        }
+
     except Exception as e:
         logger.error(f"Error: {e}")  # LOG
         raise HTTPException(
@@ -172,11 +183,3 @@ async def talk_chat(
                 "message": "There was a problem processing the model",
             },
         )
-
-    return {
-        "code": "MODEL_RESPONSE_SUCCESS",
-        "message": "Model has successfully returned a response",
-        "content": content,
-        "chat_id": chat_id,
-        "document_ids": document_data,
-    }

@@ -16,6 +16,7 @@ async def tool_node(
 ) -> ExecutorAgentSchema:
     """Tool node to make all the tool calls and store them in agent state"""
     tasks = state.get("tasks", [])
+    folder_id = state.get("folder_id", "global")
     if not tasks:
         return {"tool_outputs": [], "document_output": [], "index": 0}
     tool_outputs: List[ToolOutputSchema] = []
@@ -26,7 +27,9 @@ async def tool_node(
                 if instance.tool_call == "document_search":
                     print("Calling document search tool....")
                     raw_tool_output, _ = await self.tool_caller.call_tool(
-                        tool_name=instance.tool_call, query=instance.enhanced_query
+                        tool_name=instance.tool_call,
+                        query=instance.enhanced_query,
+                        folder_id=folder_id,
                     )
 
                     parsed_tool_output = json.loads(raw_tool_output)

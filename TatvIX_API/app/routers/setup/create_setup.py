@@ -97,12 +97,13 @@ async def populate(
     current_user: Annotated[User, Depends(security.get_current_user)],
     session: SQLSessionDep,
     data: PopulateWeaviate,
+    folder_id: str = "global",  # Defaults global user folder
 ):
     try:
         # Get global client object
         client: WeaviateClient = request.app.state.weaviate_client
         text_data = await get_data(session=session, file_data=data)
-        await store_data(text_data, client)
+        await store_data(text_data, client, folder_id)
         return {"ok": True, "message": "Successfully populated Weaviate."}
     # Seperatly raise http exceptions
     except HTTPException:
@@ -110,18 +111,4 @@ async def populate(
 
     except Exception as e:
         logger.error(f"Error at routers.populate: {e}")
-        raise HTTPException(status_code=500, detail="Something went wrong!")
-
-
-@router.post("/weaviate/{folder_id}", status_code=200)
-async def populate_folder(
-    request: Request,
-    current_user: Annotated[User, Depends(security.get_current_user)],
-    session: SQLSessionDep,
-    data: PopulateWeaviate,
-):
-    try:
-        client: WeaviateClient = request.app.state.weaviate_client
-    except Exception as e:
-        logger.error(f"Error at routers.populate_folder: {e}")
         raise HTTPException(status_code=500, detail="Something went wrong!")

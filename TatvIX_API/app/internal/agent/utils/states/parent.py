@@ -20,6 +20,7 @@ class DocumentOutputSchema(BaseModel):
 class ParentAgentSchema(MessagesState):
     user_query: str
     objective: str
+    folder_id: str
     global_summary: str  # Incrementally tracks all the conversation goals met so far
     document_output: Annotated[
         List[DocumentOutputSchema], append_or_clear

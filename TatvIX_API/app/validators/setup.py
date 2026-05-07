@@ -16,3 +16,4 @@ class WeaviateMetaDataSchema(BaseModel):
     text: str
     file_id: str
     page_no: str
+    folder_id: str

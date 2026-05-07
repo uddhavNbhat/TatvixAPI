@@ -9,7 +9,7 @@ from app.utils.db.sql import SQLSessionDep
 router = APIRouter(prefix="/api")
 
 
-@router.get("/dashboard", status_code=200)
+@router.get("/folder", status_code=200)
 async def read_folder(
     request: Request,
     current_user: Annotated[User, Depends(security.get_current_user)],
@@ -48,7 +48,7 @@ async def read_folder(
         }
 
     except Exception as e:
-        logger.error(f"Error at folders.create_folder: {e}")
+        logger.error(f"Error at folders.read_folder: {e}")
         raise HTTPException(
             status_code=500,
             detail={

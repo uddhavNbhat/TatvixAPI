@@ -11,12 +11,13 @@ from app.utils.dependency import get_legal_agent
 router = APIRouter(prefix="/api")
 
 
-@router.delete("/chat", status_code=200)
+@router.delete("/folder/{folder_id}/chat/{chat_id}", status_code=200)
 def delete_chat(
     request: Request,
     current_user: Annotated[User, Depends(security.get_current_user)],
     session: SQLSessionDep,
     legal_agent: Annotated[LegalAgent, Depends(get_legal_agent)],
+    folder_id: str,
     chat_id: str,
 ):
     """
@@ -25,7 +26,10 @@ def delete_chat(
     """
 
     current_chat = session.exec(
-        select(Chat).where(Chat.owner_id == current_user.id).where(Chat.id == chat_id)
+        select(Chat)
+        .where(Chat.owner_id == current_user.id)
+        .where(Chat.folder_id == folder_id)
+        .where(Chat.id == chat_id)
     ).first()
     if not current_chat:
         raise HTTPException(
@@ -48,6 +52,11 @@ def delete_chat(
                 500, {"code": "DB_ERROR", "message": "Failed to delete messages"}
             )
 
+        return {
+            "code": "CHAT_DELETE_SUCCESS",
+            "message": "Chat has been successfully been deleted",
+        }
+
     except Exception as e:
         logger.error(f"Error at delete chat: {e}")
         raise HTTPException(
@@ -57,8 +66,3 @@ def delete_chat(
                 "message": "Could not delete record",
             },
         )
-
-    return {
-        "code": "CHAT_DELETE_SUCCESS",
-        "message": "Chat has been successfully been deleted",
-    }

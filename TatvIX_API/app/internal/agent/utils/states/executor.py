@@ -72,6 +72,7 @@ class ExecutorOutputSchema(BaseModel):
 
 class ExecutorAgentSchema(MessagesState):
     user_query: str
+    folder_id: str
     tasks: List[TaskSchema]  # Fixed tasks per workflow invoke, not accumilated.
     completed_tasks: TaskListSchema  # Keeps track of complete tasks at every step (Gets input incomplete tasks at every step).
     tool_outputs: List[ToolOutputSchema]  # Tool output

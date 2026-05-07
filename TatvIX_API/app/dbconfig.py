@@ -85,6 +85,7 @@ class WeaviateConfig:
                         wc.Property(name="text", data_type=wc.DataType.TEXT),
                         wc.Property(name="file_id", data_type=wc.DataType.TEXT),
                         wc.Property(name="page_no", data_type=wc.DataType.TEXT),
+                        wc.Property(name="folder_id", data_type=wc.DataType.TEXT),
                     ],
                     vector_config=wc.Configure.Vectors.self_provided(),
                 )

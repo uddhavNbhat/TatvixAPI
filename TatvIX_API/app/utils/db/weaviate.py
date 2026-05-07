@@ -39,7 +39,7 @@ async def get_data(
         raise e
 
 
-async def store_data(data: List[dict], weaviate_client: WeaviateClient):
+async def store_data(data: List[dict], weaviate_client: WeaviateClient, folder_id: str):
     """Method to store data in weaviate database through batches"""
     try:
         embeddings = weaviate_client.collections.get(
@@ -56,6 +56,9 @@ async def store_data(data: List[dict], weaviate_client: WeaviateClient):
                             params={"embed_type": "document"},
                             json={"text": [item["text"]]},
                         )
+                        logger.info(
+                            f"Status code for embedding: {embedding_response.status_code}"
+                        )
                         embedding_response.raise_for_status()
                         vector_data = embedding_response.json().get("vectors", [])
                         if not vector_data:
@@ -68,6 +71,7 @@ async def store_data(data: List[dict], weaviate_client: WeaviateClient):
                             "text": item["text"],
                             "file_id": item["file_id"],
                             "page_no": item["page_no"],
+                            "folder_id": folder_id,
                         }
 
                         batch.add_object(properties=properties, vector=vector)

@@ -128,7 +128,7 @@ class LegalAgent:
         except Exception as e:
             raise e
 
-    async def invoke(self, session_id: str, query: str):
+    async def invoke(self, session_id: str, query: str, folder_id: str):
         """Method to invoke the compiled agent graph"""
         try:
             if not self.agent_graph:
@@ -136,7 +136,7 @@ class LegalAgent:
 
             config = {"configurable": {"thread_id": session_id}}
 
-            agent_input = {"user_query": query}
+            agent_input = {"user_query": query, "folder_id": folder_id}
 
             response = await self.agent_graph.ainvoke(config=config, input=agent_input)
 

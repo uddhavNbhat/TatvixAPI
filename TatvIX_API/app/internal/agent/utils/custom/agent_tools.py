@@ -34,7 +34,12 @@ class AgentTools:
             if tool_name not in self.current_tools:
                 raise ValueError("No such tool exists!")
             tool = self.tool_map[tool_name]
-            if tool_name == "document_search" or tool_name == "search_engine":
+            if tool_name == "document_search":
+                query = kwargs["query"]
+                folder_id = kwargs["folder_id"]
+                response = await tool(query=query, folder_id=folder_id)
+                return response
+            elif tool_name == "search_engine":
                 query = kwargs["query"]
                 response = await tool(query=query)
                 return response
